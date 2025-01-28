@@ -29,7 +29,7 @@ def home():
 @app.route('/analyze', methods=['POST'])
 def analyze_data():
     """
-    تحليل بيانات استبيان الصحة النفسية وإرجاع التصنيف.
+    تحليل بيانات استبيان الصحة النفسية وإرجاع التصنيفات الثلاثة مع احتمالاتها.
     """
     try:
         # قراءة البيانات من الطلب
@@ -39,11 +39,15 @@ def analyze_data():
         # معالجة البيانات
         processed_data = preprocess_data(data)
 
-        # توقع التصنيف باستخدام النموذج
-        prediction = model.predict(processed_data)
-        result = int(prediction[0])  # نتيجة التصنيف
+        # توقع الاحتمالات باستخدام النموذج
+        probabilities = model.predict_proba(processed_data)[0]
+        print(f"Predicted probabilities: {probabilities}")
 
-        # إرجاع التصنيف
+        # التصنيفات الثلاثة
+        categories = ['Normal', 'Needs Monitoring', 'At Risk']
+        result = {categories[i]: round(probabilities[i], 2) for i in range(len(categories))}
+
+        # إرجاع التصنيفات مع الاحتمالات
         return jsonify({
             "status": "success",
             "classification": result
