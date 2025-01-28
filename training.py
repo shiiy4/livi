@@ -17,7 +17,7 @@ y_train = train_data[target]
 # 3. معالجة البيانات
 def preprocess_data(df):
     for column in df.columns:
-        df[column] = df[column].astype("category").cat.codes
+      df[column] = df[column].astype("category").cat.codes
     return df
 
 X_train = preprocess_data(X_train)
@@ -46,5 +46,13 @@ rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 rf_model.fit(X_train_balanced, y_train_balanced)
 
 # 7. حفظ النموذج
-joblib.dump(rf_model, "random_forest_model.pkl")
-print("\nRandom Forest model saved as 'random_forest_model.pkl'")
+# تأكد أن `rf_model` هو نموذج وليس بيانات
+if not isinstance(rf_model, RandomForestClassifier):
+    print("Error: rf_model is not a valid RandomForestClassifier instance")
+else:
+    # حفظ النموذج بشكل صحيح
+    joblib.dump(rf_model, "random_forest_model.pkl")
+    print("✅ Model saved successfully as 'random_forest_model.pkl'")
+
+model = joblib.load("random_forest_model.pkl")
+print("✅ Loaded model type:", type(model))
