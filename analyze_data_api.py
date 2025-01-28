@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import pickle
 from flask_cors import CORS
+import joblib
+
 
 
 
@@ -18,7 +20,9 @@ def home():
 
    
 # Load pre-trained Random Forest model
-model = pickle.load(open('random_forest_model.pkl', 'rb'))
+model = joblib.load('random_forest_model.pkl')
+print("✅ Model loaded successfully:", type(model))
+
 
 @app.route('/analyze', methods=['POST'])
 def analyze_data():
