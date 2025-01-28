@@ -57,7 +57,7 @@ def analyze_data():
         return jsonify({
             "status": "success",
             "classification": highest_classification,
-           
+            "details": sorted_classifications
         }), 200
 
     except Exception as e:
