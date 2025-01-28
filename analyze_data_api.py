@@ -38,6 +38,16 @@ def analyze_data():
 
         # معالجة البيانات
         processed_data = preprocess_data(data)
+        print(f"Processed data columns: {processed_data.columns.tolist()}")
+        print(f"Expected model columns: {model.feature_names_in_.tolist()}")
+
+        # التحقق من الأعمدة
+        missing_columns = set(model.feature_names_in_) - set(processed_data.columns)
+        if missing_columns:
+            return jsonify({
+                "status": "error",
+                "message": f"Missing columns in input data: {missing_columns}"
+            }), 400
 
         # توقع الاحتمالات باستخدام النموذج
         probabilities = model.predict_proba(processed_data)[0]
