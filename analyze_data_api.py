@@ -46,14 +46,18 @@ def analyze_data():
         # التصنيفات الثلاثة
         categories = ['Normal', 'Needs Monitoring', 'At Risk']
 
-        # اختيار التصنيف بناءً على أعلى احتمال
-        max_index = probabilities.argmax()
-        final_classification = categories[max_index]
+        # إنشاء قائمة من التصنيفات مع احتمالاتها
+        classifications = list(zip(categories, probabilities))
+
+        # فرز التصنيفات حسب الاحتمال واختيار الأعلى
+        sorted_classifications = sorted(classifications, key=lambda x: x[1], reverse=True)
+        highest_classification = sorted_classifications[0][0]
 
         # إرجاع التشخيص النهائي
         return jsonify({
             "status": "success",
-            "classification": final_classification
+            "classification": highest_classification,
+            "details": sorted_classifications  # يمكن حذف هذا إذا كنت لا تريد رؤية الاحتمالات
         }), 200
 
     except Exception as e:
