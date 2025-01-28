@@ -32,6 +32,30 @@ negative_keywords = [
     "Quick-tempered", "Unexplained sadness", "Emotional", "Low mood"
 ]
 
+# الأسئلة المرتبطة بالإجابات
+questions = [
+    "Do you feel mentally exhausted at work?",
+    "After a day at work, do you find it hard to recover your energy?",
+    "Do you find that everything you do at work requires a great deal of effort?",
+    "Do you feel physically exhausted at work?",
+    "When you get up in the morning, do you lack the energy to start a new day at work?",
+    "Do you want to be active at work but find it difficult to manage?",
+    "Do you quickly get tired when exerting yourself at work?",
+    "Do you feel mentally exhausted and drained at the end of your workday?",
+    "Do you struggle to find enthusiasm for your work?",
+    "Do you feel indifferent about your job?",
+    "Are you cynical about the impact your work has on others?",
+    "Do you have trouble staying focused at work?",
+    "Do you struggle to think clearly at work?",
+    "Are you forgetful and easily distracted at work?",
+    "Do you have trouble concentrating while working?",
+    "Do you make mistakes at work because your mind is on other things?",
+    "Do you feel unable to control your emotions at work?",
+    "Do you feel you no longer recognize yourself in your emotional reactions at work?",
+    "Do you become irritable when things don't go your way at work?",
+    "Do you feel sad or upset at work without knowing why?"
+]
+
 # وظيفة حساب الإجابات السلبية والإيجابية
 def calculate_answers(input_data):
     """
@@ -72,19 +96,16 @@ def analyze_data():
     try:
         # قراءة البيانات من الطلب
         data = request.json
-        print(f"Received data: {data}")
+
+        # تحويل قائمة الإجابات إلى خريطة (سؤال -> إجابة)
+        answers = {questions[i]: data["features"][i] for i in range(len(questions))}
+        print(f"Processed Answers: {answers}")
 
         # حساب الإجابات السلبية والإيجابية
-        negative_count, positive_count = calculate_answers(data)
+        negative_count, positive_count = calculate_answers(answers)
 
         # تحديد التشخيص بناءً على عدد الإجابات السلبية
         diagnosis = determine_diagnosis(negative_count)
-
-        # معالجة البيانات للنموذج (الجزء الخاص بالخوارزمية - لن يتم استخدامه في المخرجات)
-        processed_data = pd.DataFrame([data])
-        for column in processed_data.columns:
-            processed_data[column] = processed_data[column].astype("category").cat.codes
-        model.predict_proba(processed_data)  # فقط لاستخدام النموذج دون عرض النتيجة
 
         # إرجاع التشخيص النهائي
         return jsonify({
