@@ -55,7 +55,7 @@ def determine_diagnosis(negative_count):
     """
     if negative_count <= 7:
         return "Normal"
-    elif 8 <= negative_count <= 10:
+    elif 8 <= negative_count <= 9:
         return "Needs Monitoring"
     else:
         return "At Risk"
