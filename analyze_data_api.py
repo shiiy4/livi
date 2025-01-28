@@ -19,7 +19,7 @@ def home():
 
 
    
-# Load pre-trained Random Forest model
+# Load pre-trained Random Forest modell
 model = joblib.load('random_forest_model.pkl')
 print("✅ Model loaded successfully:", type(model))
 
