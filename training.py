@@ -5,7 +5,7 @@ from sklearn.metrics import classification_report
 import joblib
 
 # 1. قراءة ملف البيانات المتوازن
-file_path = "/Users/shahad./Desktop/livi/large_balanced_classification_dataset.csv"  # مسار الملف المتوازن
+file_path = "/Users/shahad./Desktop/livi/mental_health_survey_samples.csv"  # مسار الملف المتوازن
 df = pd.read_csv(file_path)  # قراءة ملف CSV
 
 # عرض أسماء الأعمدة
