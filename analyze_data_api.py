@@ -29,7 +29,7 @@ def home():
 @app.route('/analyze', methods=['POST'])
 def analyze_data():
     """
-    تحليل بيانات استبيان الصحة النفسية وإرجاع التصنيفات الثلاثة مع احتمالاتها.
+    تحليل بيانات استبيان الصحة النفسية وإرجاع التصنيف النهائي.
     """
     try:
         # قراءة البيانات من الطلب
@@ -45,12 +45,15 @@ def analyze_data():
 
         # التصنيفات الثلاثة
         categories = ['Normal', 'Needs Monitoring', 'At Risk']
-        result = {categories[i]: round(probabilities[i], 2) for i in range(len(categories))}
 
-        # إرجاع التصنيفات مع الاحتمالات
+        # اختيار التصنيف بناءً على أعلى احتمال
+        max_index = probabilities.argmax()
+        final_classification = categories[max_index]
+
+        # إرجاع التصنيف النهائي
         return jsonify({
             "status": "success",
-            "classification": result
+            "classification": final_classification
         }), 200
 
     except Exception as e:
@@ -61,4 +64,3 @@ def analyze_data():
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5001)
-  
