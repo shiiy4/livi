@@ -1,55 +1,41 @@
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 import joblib
 
-# 1. قراءة ملف البيانات المتوازن
-file_path = "/Users/shahad./Desktop/livi/mental_health_survey_samples.csv"  # مسار الملف المتوازن
-df = pd.read_csv(file_path)  # قراءة ملف CSV
+# 1. قراءة البيانات
+data_file = "answers_classification_dataset.csv"  # ملف الإجابات المصنفة مسبقًا
+df = pd.read_csv(data_file)
 
-# عرض أسماء الأعمدة
-print("أسماء الأعمدة في الملف:")
-print(df.columns)
+# التحقق من شكل البيانات
+print("First 5 rows of the dataset:")
+print(df.head())
 
-# 2. فصل الميزات والهدف
-X = df.drop(columns=["Classification"])  # الميزات
-y = df["Classification"]  # الهدف
+# 2. فصل الميزات (الإجابات) والهدف (التصنيف)
+X = df["Answer"]  # الإجابة النصية
+y = df["Label"]   # التصنيف (Positive/Negative)
 
-# عرض توزيع الفئات في البيانات
-print("Class distribution in training data:")
-print(y.value_counts())
-
-# 3. معالجة البيانات
-def preprocess_data(df):
-    """
-    تحويل البيانات النصية إلى قيم عددية بنفس الطريقة المستخدمة أثناء التدريب.
-    """
-    for column in df.columns:
-        df[column] = df[column].astype("category").cat.codes
-    return df
-
-X = preprocess_data(X)  # معالجة الميزات
-y = y.astype("category").cat.codes  # تحويل الهدف إلى أرقام
+# 3. تحويل النصوص إلى ميزات عددية باستخدام TF-IDF
+vectorizer = TfidfVectorizer()
+X_transformed = vectorizer.fit_transform(X)
 
 # 4. تقسيم البيانات إلى تدريب واختبار
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X_transformed, y, test_size=0.2, random_state=42, stratify=y)
 
-# 5. إنشاء نموذج الغابة العشوائية
-model = RandomForestClassifier(
-    n_estimators=100,  # عدد الأشجار
-    random_state=42,   # لضمان نفس النتائج عند إعادة التدريب
-    class_weight="balanced"  # للتعامل مع التصنيفات بشكل متوازن
-)
-
-# 6. تدريب النموذج
+# 5. تدريب نموذج Random Forest
+model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
 model.fit(X_train, y_train)
 
-# 7. تقييم النموذج
+# 6. تقييم النموذج
 y_pred = model.predict(X_test)
-print("Classification Report:")
-print(classification_report(y_test, y_pred, target_names=["Normal", "Needs Monitoring", "At Risk"]))
 
-# 8. حفظ النموذج
-joblib.dump(model, "random_forest_model.pkl")
-print("✅ Model trained and saved as 'random_forest_model.pkl'")
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# 7. حفظ النموذج و TF-IDF Vectorizer لاستخدامهما لاحقًا في API
+joblib.dump(model, "random_forest_model.pkl")  # حفظ النموذج في ملف جديد
+joblib.dump(vectorizer, "tfidf_vectorizer.pkl")  # حفظ TF-IDF Vectorizer
+
+print("\n✅ Model and vectorizer saved successfully as 'random_forest_model.pkl' and 'tfidf_vectorizer.pkl'!")
