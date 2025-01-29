@@ -1,119 +1,92 @@
-from flask import Flask, request, jsonify
-from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+from flask import Flask, request, jsonify
 import joblib
-from flask_cors import CORS
 
 # إعداد Flask
 app = Flask(__name__)
-CORS(app)
 
-# تحميل النموذج المدرب
-model = joblib.load('random_forest_model.pkl')
-print("✅ Model loaded successfully")
+# 1. إعداد البيانات وتدريب النموذج
+data_file = "answers_classification_dataset.csv"  # ملف الإجابات المصنفة مسبقًا
+df = pd.read_csv(data_file)
 
-# قائمة الكلمات المفتاحية (الإجابات السلبية)
-negative_keywords = [
-    "Mentally drained", "Exhausted", "Overwhelmed",
-    "Always a struggle", "Too much effort", "Overwhelming",
-    "Never rested", "Constantly tired", "Drained",
-    "Heavy body", "Worn out", "Drained quickly",
-    "No motivation", "Dreading it", "Low energy",
-    "Lost drive", "Can’t keep up", "Lacking energy",
-    "Easily fatigued", "No stamina", "Emotionally strained",
-    "Burned out", "Unmotivated", "No passion", "Disengaged",
-    "Detached", "Uncaring", "Apathetic", "Cynical",
-    "Doesn’t matter", "Unimportant", "Distracted",
-    "Unfocused", "Easily sidetracked", "Foggy mind",
-    "Confused", "Unclear", "Forgetful", "Lose focus",
-    "Easily distracted", "Frequent errors", "Not focused",
-    "Emotional outbursts", "Irritable", "Unstable",
-    "Not myself", "Changed", "Easily frustrated",
-    "Quick-tempered", "Unexplained sadness", "Emotional", "Low mood"
-]
+# التحقق من شكل البيانات
+print("First 5 rows of the dataset:")
+print(df.head())
 
-# الأسئلة المرتبطة بالإجابات
-questions = [
-    "Do you feel mentally exhausted at work?",
-    "After a day at work, do you find it hard to recover your energy?",
-    "Do you find that everything you do at work requires a great deal of effort?",
-    "Do you feel physically exhausted at work?",
-    "When you get up in the morning, do you lack the energy to start a new day at work?",
-    "Do you want to be active at work but find it difficult to manage?",
-    "Do you quickly get tired when exerting yourself at work?",
-    "Do you feel mentally exhausted and drained at the end of your workday?",
-    "Do you struggle to find enthusiasm for your work?",
-    "Do you feel indifferent about your job?",
-    "Are you cynical about the impact your work has on others?",
-    "Do you have trouble staying focused at work?",
-    "Do you struggle to think clearly at work?",
-    "Are you forgetful and easily distracted at work?",
-    "Do you have trouble concentrating while working?",
-    "Do you make mistakes at work because your mind is on other things?",
-    "Do you feel unable to control your emotions at work?",
-    "Do you feel you no longer recognize yourself in your emotional reactions at work?",
-    "Do you become irritable when things don't go your way at work?",
-    "Do you feel sad or upset at work without knowing why?"
-]
+# فصل الميزات (الإجابات) والهدف (التصنيف)
+X = df["Answer"]  # الإجابة النصية
+y = df["Label"]   # التصنيف (Positive/Negative)
 
-# وظيفة حساب الإجابات السلبية والإيجابية
-def calculate_answers(input_data):
-    """
-    حساب عدد الإجابات السلبية والإيجابية بناءً على الكلمات المفتاحية.
-    """
-    negative_count = 0
-    positive_count = 0
+# تحويل النصوص إلى ميزات عددية باستخدام TF-IDF
+vectorizer = TfidfVectorizer()
+X_transformed = vectorizer.fit_transform(X)
 
-    for answer in input_data.values():
-        if answer in negative_keywords:
-            negative_count += 1
-        else:
-            positive_count += 1
+# تقسيم البيانات إلى تدريب واختبار
+X_train, X_test, y_train, y_test = train_test_split(X_transformed, y, test_size=0.2, random_state=42, stratify=y)
 
-    return negative_count, positive_count
+# تدريب نموذج Random Forest
+model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
+model.fit(X_train, y_train)
 
-# وظيفة تحديد التشخيص بناءً على عدد الإجابات السلبية
-def determine_diagnosis(negative_count):
-    """
-    تحديد التشخيص النهائي بناءً على عدد الإجابات السلبية.
-    """
-    if negative_count <= 7:
-        return "Normal"
-    elif 8 <= negative_count <= 9:
-        return "Needs Monitoring"
-    else:
-        return "At Risk"
+# تقييم النموذج
+y_pred = model.predict(X_test)
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
 
-@app.route('/')
-def home():
-    return "Flask server is running successfully!"
+# حفظ النموذج و TF-IDF Vectorizer لاستخدامهما لاحقًا
+joblib.dump(model, "answer_classifier.pkl")
+joblib.dump(vectorizer, "tfidf_vectorizer.pkl")
+print("\nModel and vectorizer saved successfully!")
 
+# 2. إنشاء API باستخدام Flask
 @app.route('/analyze', methods=['POST'])
-def analyze_data():
-    """
-    تحليل بيانات استبيان الصحة النفسية وإرجاع التشخيص النهائي بناءً على الحساب.
-    """
+def analyze_answers():
     try:
+        # تحميل النموذج والمدخلات
+        model = joblib.load("answer_classifier.pkl")
+        vectorizer = joblib.load("tfidf_vectorizer.pkl")
+        
         # قراءة البيانات من الطلب
         data = request.json
+        answers = data.get("answers")  # قائمة الإجابات من المستخدم
 
-        # تحويل قائمة الإجابات إلى خريطة (سؤال -> إجابة)
-        answers = {questions[i]: data["features"][i] for i in range(len(questions))}
-        print(f"Processed Answers: {answers}")
+        if not answers or len(answers) != 20:
+            return jsonify({
+                "status": "error",
+                "message": "Exactly 20 answers are required."
+            }), 400
 
-        # حساب الإجابات السلبية والإيجابية
-        negative_count, positive_count = calculate_answers(answers)
+        # تحويل الإجابات إلى ميزات باستخدام TF-IDF
+        features = vectorizer.transform(answers)
+
+        # تصنيف كل إجابة
+        predictions = model.predict(features)
+
+        # حساب عدد الإجابات الإيجابية والسلبية
+        positive_count = sum(1 for p in predictions if p == "Positive")
+        negative_count = sum(1 for p in predictions if p == "Negative")
 
         # تحديد التشخيص بناءً على عدد الإجابات السلبية
-        diagnosis = determine_diagnosis(negative_count)
+        if negative_count <= 7:
+            diagnosis = "Normal"
+        elif 8 <= negative_count <= 10:
+            diagnosis = "Needs Monitoring"
+        else:
+            diagnosis = "At Risk"
 
-        # إرجاع التشخيص النهائي
-        return jsonify({
+        # إعداد النتيجة
+        result = {
             "status": "success",
-            "diagnosis": diagnosis,
+            "positive_count": positive_count,
             "negative_count": negative_count,
-            "positive_count": positive_count
-        }), 200
+            "diagnosis": diagnosis  # إضافة التشخيص النهائي
+        }
+
+        return jsonify(result), 200
 
     except Exception as e:
         return jsonify({
@@ -122,4 +95,4 @@ def analyze_data():
         }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    app.run(debug=True, host="0.0.0.0", port=5000)
